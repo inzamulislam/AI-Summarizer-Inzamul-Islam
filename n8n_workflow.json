@@ -1,0 +1,291 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "submit",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "38070543-445e-4904-a4f8-51a872695e08",
+      "name": "Request Input (Webhook)",
+      "webhookId": "35c170b8-baef-4efa-b3e5-36bd7654155e"
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json.body.url }}",
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b93d54b0-c6c3-44e4-8d5d-ea514ae52cc9",
+      "name": "Article Scraper (Firecrawl)",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "QPxsNqJDwDVHxogj",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7c30130c-4a7c-4935-ba25-7c9a1b55fba9",
+              "name": "clean_markdown",
+              "value": "={{ JSON.stringify($json.data.markdown).substring(0, 2000) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "7b717a41-a8d7-48d1-854d-d90d34678ea6",
+      "name": "Data Formatter"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  model: \"llama3\",\n  prompt: `Summarize this text:\n\n${$json.clean_markdown}`,\n  stream: false\n}\n}}",
+        "options": {
+          "timeout": 2000000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "1c80cff1-13a6-4442-bd8f-067b23f118c9",
+      "name": "Ollama Summarizer"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": \"phi3\",\n  \"prompt\": `Extract 3 key insights from this text briefly:\n\n${$json.response.substring(0, 1000)}`,\n  \"stream\": false\n}\n}}",
+        "options": {
+          "timeout": 3000000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "fbe77222-61c2-4e30-9755-c6eb643fab06",
+      "name": "Ollama Insights Generator"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1CIrWxBuuWhOzITQLXETgzB7awr1jMXWPjZ30OW6avQc",
+          "mode": "list",
+          "cachedResultName": "module 21 assignment",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CIrWxBuuWhOzITQLXETgzB7awr1jMXWPjZ30OW6avQc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CIrWxBuuWhOzITQLXETgzB7awr1jMXWPjZ30OW6avQc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Summary": "={{ $json.response }}",
+            "Session ID": "={{ $execution.id }}",
+            "Email": "={{ $('Request Input (Webhook)').item.json.body.email }}",
+            "Article URL": "={{ $('Request Input (Webhook)').item.json.body.url }}"
+          },
+          "matchingColumns": [
+            "Summary"
+          ],
+          "schema": [
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Session ID",
+              "displayName": "Session ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Article URL",
+              "displayName": "Article URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "ea03c866-0b2e-4bcd-97b3-22e8dc15b3e5",
+      "name": "Google Sheets Export",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "itBwQ9DZBgNJdR52",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Request Input (Webhook)').item.json.body.email }}",
+        "subject": "Your AI Article Analysis Report",
+        "emailType": "text",
+        "message": "=\"Hi,  Here is the summary of the article you requested: {{ $('Ollama Summarizer').item.json.response }}  Key Insights: {{ $('Ollama Insights Generator').item.json.response }}\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        0
+      ],
+      "id": "3638f405-964d-4299-9274-4741ac19e536",
+      "name": "Email Notification",
+      "webhookId": "67f1ae38-eec8-4524-8152-1e453888d548",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "FE5frlw6dDLxgj2O",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Request Input (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Article Scraper (Firecrawl)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Article Scraper (Firecrawl)": {
+      "main": [
+        [
+          {
+            "node": "Data Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Formatter": {
+      "main": [
+        [
+          {
+            "node": "Ollama Summarizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Summarizer": {
+      "main": [
+        [
+          {
+            "node": "Ollama Insights Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Insights Generator": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Export": {
+      "main": [
+        [
+          {
+            "node": "Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c6e85080b15f40af0a417b2baeab0c21eefdb499c6cdf3b9e116a83a737a7117"
+  }
+}
